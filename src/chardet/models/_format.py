@@ -261,12 +261,17 @@ def read_models(models_path: Path) -> dict[str, dict[tuple[int, int], int]]:
         return {}
     tables, _norms = parse_models_bin(data)
     models: dict[str, dict[tuple[int, int], int]] = {}
+    zero_row = bytes(256)
     for name, table in tables.items():
         bigrams: dict[tuple[int, int], int] = {}
-        for idx in range(65536):
-            weight = table[idx]
-            if weight > 0:
-                bigrams[(idx >> 8, idx & 0xFF)] = weight
+        for b1 in range(256):
+            start = b1 * 256
+            row = table[start : start + 256]
+            if row == zero_row:
+                continue
+            for b2, weight in enumerate(row):
+                if weight > 0:
+                    bigrams[(b1, b2)] = weight
         models[name] = bigrams
     return models
 
